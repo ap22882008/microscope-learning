@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國中生物 - 顯微鏡互動學習實驗室</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+        }
+        /* Lens FOV Effect */
+        .lens-container {
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 10px 25px rgba(0,0,0,0.2);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-indigo-700 p-2 rounded-lg shadow-md font-bold text-xl">
+                    <i class="fa-solid fa-microscope"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">顯微鏡互動學習實驗室</h1>
+                    <p class="text-xs text-indigo-200">國中生物基礎實驗 ‧ 複式顯微鏡與解剖顯微鏡</p>
+                </div>
+            </div>
+            <!-- Tab Navigation Buttons -->
+            <nav class="flex space-x-1 mt-2 sm:mt-0 bg-indigo-800 p-1 rounded-xl">
+                <button id="tab-compound" onclick="switchMode('compound')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-white text-indigo-900 shadow">
+                    <i class="fa-solid fa-flask mr-1"></i> 複式顯微鏡
+                </button>
+                <button id="tab-stereo" onclick="switchMode('stereo')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-indigo-100 hover:text-white">
+                    <i class="fa-solid fa-bug mr-1"></i> 解剖顯微鏡
+                </button>
+                <button id="tab-quiz" onclick="switchMode('quiz')" class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-indigo-100 hover:text-white">
+                    <i class="fa-solid fa-graduation-cap mr-1"></i> 比較與測驗
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- ==================== MICROSCOPE SIMULATOR SECTION (Cols 1-8/12) ==================== -->
+        <section id="simulator-section" class="lg:col-span-8 flex flex-col space-y-4">
+            
+            <!-- Guided Mode Banner -->
+            <div id="guided-banner" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm flex items-start justify-between">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-amber-500 text-white rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0 font-bold text-sm" id="step-number">1</div>
+                    <div>
+                        <h4 class="font-bold text-amber-900 text-sm" id="step-title">步驟 1：開啟電源與調整光源</h4>
+                        <p class="text-xs text-amber-800 mt-0.5" id="step-desc">請調整光源開關與光圈，讓視野達到足夠的亮度。</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="prevStep()" class="px-2.5 py-1 text-xs bg-amber-200 text-amber-800 rounded hover:bg-amber-300 font-medium">上一步</button>
+                    <button onclick="nextStep()" class="px-2.5 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 font-medium">下一步</button>
+                </div>
+            </div>
+
+            <!-- Viewport Canvas Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 flex flex-col items-center">
+                <div class="w-full flex justify-between items-center mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span id="mode-badge" class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-bold rounded-full">複式顯微鏡透光模式</span>
+                        <span id="mag-badge" class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full">總放大倍率: 40X</span>
+                    </div>
+                    <div class="text-xs text-slate-500 flex items-center space-x-1">
+                        <i class="fa-solid fa-circle-info text-indigo-500"></i>
+                        <span id="optic-hint">特性：倒立放大像 (上下左右相反)</span>
+                    </div>
+                </div>
+
+                <!-- Challenge Mode Banner -->
+                <div id="challenge-banner" class="w-full mb-3 p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white flex justify-between items-center shadow-md">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-2 bg-white/20 rounded-lg">
+                            <i class="fa-solid fa-stopwatch text-yellow-300 text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-xs">動態標本追蹤挑戰</div>
+                            <div class="text-[11px] opacity-90" id="challenge-desc">將移動中的生物保持在視野黃色圓圈中央！</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <div class="text-[10px] opacity-80">中央維持時間</div>
+                            <div class="text-lg font-extrabold tracking-wider text-yellow-300" id="challenge-timer">0.0s / 10s</div>
+                        </div>
+                        <button id="challenge-toggle-btn" onclick="toggleChallenge()" class="px-3 py-1.5 bg-white text-indigo-900 font-bold text-xs rounded-lg shadow hover:bg-yellow-300 transition">
+                            開始挑戰
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Circular Lens Viewport Container -->
+                <div class="relative flex items-center justify-center my-2">
+                    <div class="absolute top-2 right-2 z-20 flex space-x-2">
+                        <button id="organism-speed-btn" onclick="toggleOrganismSpeed()" class="bg-slate-800/60 hover:bg-slate-800 text-white text-xs px-2.5 py-1 rounded-md backdrop-blur-sm transition">
+                            <i class="fa-solid fa-gauge-high mr-1"></i> 生物速度: <span id="speed-label">正常</span>
+                        </button>
+                        <button onclick="toggleGrid()" class="bg-slate-800/60 hover:bg-slate-800 text-white text-xs px-2.5 py-1 rounded-md backdrop-blur-sm transition">
+                            <i class="fa-solid fa-border-all mr-1"></i> 目鏡十字線
+                        </button>
+                    </div>
+
+                    <!-- Microscope Circular Lens -->
+                    <div id="lens-wrapper" class="relative w-[320px] h-[320px] sm:w-[380px] sm:h-[380px] rounded-full overflow-hidden border-8 border-slate-800 bg-black lens-container flex items-center justify-center">
+                        <canvas id="microscopeCanvas" width="400" height="400" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                        <div id="grid-overlay" class="hidden absolute inset-0 pointer-events-none border border-slate-400/30 grid grid-cols-2 grid-rows-2">
+                            <div class="border-r border-b border-red-500/40"></div>
+                            <div class="border-b border-red-500/40"></div>
+                            <div class="border-r border-red-500/40"></div>
+                            <div></div>
+                        </div>
+                        <div id="target-zone" class="absolute w-16 h-16 border-2 border-dashed border-yellow-400/60 rounded-full pointer-events-none flex items-center justify-center animate-pulse">
+                            <div class="w-1 h-1 bg-yellow-400 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage D-Pad Quick Directional Controls -->
+                <div class="mt-3 flex flex-col items-center bg-slate-100 p-2.5 rounded-2xl border border-slate-200 w-full max-w-xs">
+                    <span class="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center">
+                        <i class="fa-solid fa-arrows-up-down-left-right text-indigo-500 mr-1.5"></i> 玻片移動方向鍵 (鍵盤 W A S D)
+                    </span>
+                    <div class="grid grid-cols-3 gap-1 w-36">
+                        <div></div>
+                        <button onclick="moveStageDir(0, -10)" class="p-2 bg-white hover:bg-indigo-50 text-indigo-700 font-bold rounded-lg border shadow-sm text-xs text-center"><i class="fa-solid fa-chevron-up"></i></button>
+                        <div></div>
+                        <button onclick="moveStageDir(-10, 0)" class="p-2 bg-white hover:bg-indigo-50 text-indigo-700 font-bold rounded-lg border shadow-sm text-xs text-center"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="resetStagePos()" class="p-1 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold flex items-center justify-center">歸位</button>
+                        <button onclick="moveStageDir(10, 0)" class="p-2 bg-white hover:bg-indigo-50 text-indigo-700 font-bold rounded-lg border shadow-sm text-xs text-center"><i class="fa-solid fa-chevron-right"></i></button>
+                        <div></div>
+                        <button onclick="moveStageDir(0, 10)" class="p-2 bg-white hover:bg-indigo-50 text-indigo-700 font-bold rounded-lg border shadow-sm text-xs text-center"><i class="fa-solid fa-chevron-down"></i></button>
+                        <div></div>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-400 mt-2 text-center">
+                    <i class="fa-solid fa-hand-pointer mr-1"></i> 可拖曳畫面、使用上方方向鍵或鍵盤 W/A/S/D 移動玻片
+                </p>
+            </div>
+
+            <!-- Specimen Selection Cards -->
+            <div class="bg-white p-4 rounded-2xl shadow-md border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
+                    <i class="fa-solid fa-vial text-indigo-600 mr-2"></i> 選擇觀察玻片標本
+                </h3>
+                <div id="specimen-buttons" class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== CONTROL PANEL SECTION (Cols 9-12/12) ==================== -->
+        <section id="control-panel-section" class="lg:col-span-4 space-y-4">
+            
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 mb-4 flex items-center justify-between">
+                    <span><i class="fa-solid fa-sliders text-indigo-600 mr-2"></i>操作控制面板</span>
+                    <button onclick="resetControls()" class="text-xs text-slate-500 hover:text-indigo-600 font-normal">
+                        <i class="fa-solid fa-rotate-right mr-1"></i>重置位置
+                    </button>
+                </h2>
+
+                <!-- Control 1: Power & Light Source -->
+                <div class="mb-5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label class="text-xs font-bold text-slate-700 block mb-2 flex justify-between items-center">
+                        <span>1. 光源與亮度 (Light Source)</span>
+                        <span id="light-val" class="text-indigo-600">50%</span>
+                    </label>
+                    
+                    <div id="compound-light-ctrl" class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-600">燈源開關</span>
+                            <button id="power-btn" onclick="togglePower()" class="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-sm">
+                                <i class="fa-solid fa-power-off mr-1"></i> 已開啟
+                            </button>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-500 block mb-1">光圈 / 聚光鏡亮度調節</span>
+                            <input type="range" id="lightSlider" min="0" max="100" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                        </div>
+                    </div>
+
+                    <div id="stereo-light-ctrl" class="hidden space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="top-light-btn" onclick="toggleStereoLight('top')" class="px-2 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg text-center">
+                                落射光 (上光源)
+                            </button>
+                            <button id="bottom-light-btn" onclick="toggleStereoLight('bottom')" class="px-2 py-1.5 bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center">
+                                透射光 (下光源)
+                            </button>
+                        </div>
+                        <input type="range" id="stereoLightSlider" min="0" max="100" value="70" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                    </div>
+                </div>
+
+                <!-- Control 2: Lens Selector -->
+                <div class="mb-5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label class="text-xs font-bold text-slate-700 block mb-2">2. 倍率物鏡選擇 (Objective Lens)</label>
+                    <div id="lens-selector-compound" class="grid grid-cols-3 gap-2">
+                        <button onclick="setLens(4)" class="lens-btn border-2 border-indigo-600 bg-indigo-50 text-indigo-700 p-2 rounded-lg text-center flex flex-col items-center">
+                            <span class="text-xs font-bold">4X</span>
+                            <span class="text-[10px] text-slate-500">紅圈/低倍</span>
+                        </button>
+                        <button onclick="setLens(10)" class="lens-btn border border-slate-200 bg-white text-slate-700 p-2 rounded-lg text-center flex flex-col items-center hover:bg-slate-50">
+                            <span class="text-xs font-bold">10X</span>
+                            <span class="text-[10px] text-slate-500">黃圈/中倍</span>
+                        </button>
+                        <button onclick="setLens(40)" class="lens-btn border border-slate-200 bg-white text-slate-700 p-2 rounded-lg text-center flex flex-col items-center hover:bg-slate-50">
+                            <span class="text-xs font-bold">40X</span>
+                            <span class="text-[10px] text-slate-500">藍圈/高倍</span>
+                        </button>
+                    </div>
+
+                    <div id="lens-selector-stereo" class="hidden grid grid-cols-2 gap-2">
+                        <button onclick="setStereoZoom(1)" class="stereo-lens-btn border-2 border-indigo-600 bg-indigo-50 text-indigo-700 p-2 rounded-lg text-center">
+                            <span class="text-xs font-bold block">10X / 20X</span>
+                            <span class="text-[10px] text-slate-500">廣角低倍</span>
+                        </button>
+                        <button onclick="setStereoZoom(2)" class="stereo-lens-btn border border-slate-200 bg-white text-slate-700 p-2 rounded-lg text-center hover:bg-slate-50">
+                            <span class="text-xs font-bold block">30X / 40X</span>
+                            <span class="text-[10px] text-slate-500">局部高倍</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control 3: Focus Adjustment -->
+                <div class="mb-5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label class="text-xs font-bold text-slate-700 block mb-2 flex justify-between">
+                        <span>3. 焦距調節輪 (Focus Adjustment)</span>
+                        <span id="focus-clarity-text" class="text-xs text-amber-600 font-normal">模糊</span>
+                    </label>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                            <span>粗調節輪 (Coarse)</span>
+                            <span id="coarse-val">30</span>
+                        </div>
+                        <input type="range" id="coarseKnob" min="-50" max="50" value="30" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                            <span>細調節輪 (Fine)</span>
+                            <span id="fine-val">-12</span>
+                        </div>
+                        <input type="range" id="fineKnob" min="-20" max="20" value="-12" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                    </div>
+                </div>
+
+                <!-- Control 4: Stage Position -->
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <label class="text-xs font-bold text-slate-700 block mb-2">4. 載物台/玻片移動 (Stage Movement)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="text-[11px] text-slate-500 block mb-1">X 軸 (左右)</span>
+                            <input type="range" id="stageX" min="-150" max="150" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-slate-500 block mb-1">Y 軸 (前後)</span>
+                            <input type="range" id="stageY" min="-150" max="150" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="updateControls()">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== COMPARISON & QUIZ SECTION ==================== -->
+        <section id="quiz-section" class="hidden lg:col-span-12 space-y-6">
+            
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa-solid fa-scale-balanced text-indigo-600 mr-2"></i> 複式顯微鏡 vs 解剖顯微鏡 核心重點比較
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-700 border-collapse">
+                        <thead class="text-xs text-indigo-900 bg-indigo-50 uppercase border-b border-indigo-100">
+                            <tr>
+                                <th class="py-3 px-4 rounded-tl-lg">比較項目</th>
+                                <th class="py-3 px-4">複式顯微鏡 (Compound Light)</th>
+                                <th class="py-3 px-4 rounded-tr-lg">解剖顯微鏡 (Stereomicroscope)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">成像性質</td>
+                                <td class="py-3 px-4 text-indigo-700 font-semibold"><i class="fa-solid fa-rotate mr-1"></i> 倒立放大像 (上下左右顛倒)</td>
+                                <td class="py-3 px-4 text-emerald-700 font-semibold"><i class="fa-solid fa-cube mr-1"></i> 正立放大像 (立體三維感)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">觀察對象</td>
+                                <td class="py-3 px-4">薄且能透光的標本 (如細胞、草履蟲)</td>
+                                <td class="py-3 px-4">較大、不透光的不規則實物 (如昆蟲、花瓣)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">光源位置</td>
+                                <td class="py-3 px-4">下方透射光 (由下往上穿透玻片)</td>
+                                <td class="py-3 px-4">上方落射光為主 (照射物體表面反射)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">目鏡結構</td>
+                                <td class="py-3 px-4">單目或雙目 (單一光路)</td>
+                                <td class="py-3 px-4">雙目 (兩條獨立光路，產生雙眼焦距差)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">玻片移動方向</td>
+                                <td class="py-3 px-4 text-rose-600">玻片向右移，視野影像向左移</td>
+                                <td class="py-3 px-4 text-emerald-600">玻片向右移，視野影像向右移 (同向)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">總放大倍率</td>
+                                <td class="py-3 px-4">較高 (約 40X ~ 1000X)</td>
+                                <td class="py-3 px-4">較低 (約 10X ~ 50X)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-circle-question text-indigo-600 mr-2"></i> 觀念隨堂小測驗
+                    </h2>
+                    <span id="quiz-score" class="text-sm font-bold bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full">得分: 0 / 3</span>
+                </div>
+
+                <div id="quiz-container" class="space-y-6">
+                    <!-- Quiz Items Rendered by JS -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            <p>國中生物科 顯微鏡教學數位互動教材 ‧ 適合七年級生物顯微鏡操作單元設計</p>
+        </div>
+    </footer>
+
+    <script>
+        // State Management & Global Variables
+        let activeMode = 'compound'; // 'compound' | 'stereo' | 'quiz'
+        let powerOn = true;
+        let isGridVisible = false;
+
+        // Dynamic Organism Autonomous Movement States
+        let parameciumPos = { x: 0, y: 0, angle: Math.random() * Math.PI * 2, speed: 0.8 };
+        let antPos = { x: 0, y: 0, angle: Math.random() * Math.PI * 2, speed: 0.7 };
+        let organismSpeedMultiplier = 1;
+
+        // Challenge Tracking State
+        let isChallengeActive = false;
+        let challengeTimer = 0;
+
+        // Compound State
+        let compoundState = {
+            eyepiece: 10,
+            objective: 4,
+            coarseVal: 30,
+            fineVal: -12,
+            lightBrightness: 50,
+            stageX: 0,
+            stageY: 0,
+            specimen: 'paramecium'
+        };
+
+        // Stereo State
+        let stereoState = {
+            zoom: 1,
+            lightSource: 'top',
+            brightness: 70,
+            coarseVal: 0,
+            fineVal: 0,
+            stageX: 0,
+            stageY: 0,
+            specimen: 'ant'
+        };
+
+        // Specimen Definitions
+        const specimens = {
+            paramecium: {
+                name: '游動草履蟲 (動態)',
+                type: 'compound',
+                icon: 'fa-water',
+                draw: (ctx, focusFactor) => drawParamecium(ctx, focusFactor)
+            },
+            onion: {
+                name: '洋蔥表皮細胞',
+                type: 'compound',
+                icon: 'fa-seedling',
+                draw: (ctx, focusFactor) => drawOnionCells(ctx, focusFactor)
+            },
+            letterE: {
+                name: '字母「e」玻片',
+                type: 'compound',
+                icon: 'fa-font',
+                draw: (ctx, focusFactor) => drawLetterE(ctx, focusFactor)
+            },
+            ant: {
+                name: '爬行小黑蟻 (動態)',
+                type: 'stereo',
+                icon: 'fa-bug',
+                draw: (ctx, focusFactor, lightSource) => drawAnt(ctx, focusFactor, lightSource)
+            },
+            flower: {
+                name: '花瓣與雄蕊',
+                type: 'stereo',
+                icon: 'fa-leaf',
+                draw: (ctx, focusFactor, lightSource) => drawFlower(ctx, focusFactor, lightSource)
+            },
+            coin: {
+                name: '硬幣表面圖案',
+                type: 'stereo',
+                icon: 'fa-coins',
+                draw: (ctx, focusFactor, lightSource) => drawCoin(ctx, focusFactor, lightSource)
+            }
+        };
+
+        // Tutorial Steps Data
+        const tutorialSteps = {
+            compound: [
+                { title: '1. 開啟電源與光源', desc: '確認顯微鏡開關已開啟，並調整光圈讓視野明亮。', check: () => powerOn && compoundState.lightBrightness > 20 },
+                { title: '2. 放置玻片標本', desc: '選擇想要觀察的玻片標本（例如：字母 e 或草履蟲）。', check: () => true },
+                { title: '3. 切至低倍物鏡', desc: '觀察時務必先使用「低倍物鏡 (4X)」尋找目標。', check: () => compoundState.objective === 4 },
+                { title: '4. 調整粗調節輪對焦', desc: '轉動粗調節輪讓影像呈現大致輪廓。', check: () => Math.abs(compoundState.coarseVal) < 15 },
+                { title: '5. 調整細調節輪微調', desc: '轉動細調節輪讓影像達到最清晰狀態。', check: () => calculateClarity() > 0.85 }
+            ],
+            stereo: [
+                { title: '1. 選擇光源方向', desc: '觀察不透明物體（如螞蟻）時請開啟「落射光 (上光源)」。', check: () => stereoState.lightSource === 'top' },
+                { title: '2. 擺放實物標本', desc: '將標本放在載物板中央。', check: () => true },
+                { title: '3. 調整聚焦旋鈕', desc: '轉動調焦輪直到立體影像呈現清晰細節。', check: () => calculateClarity() > 0.85 }
+            ]
+        };
+        let currentStepIdx = 0;
+
+        // Quiz Data
+        const quizData = [
+            {
+                question: '1. 小明在複式顯微鏡視野中看到草履蟲正在向「左上方」游走，若要將草履蟲移回視野中央，玻片應該向哪個方向移動？',
+                options: ['左上方', '右上方', '左下方', '右下方'],
+                answer: 0,
+                explanation: '正確！複式顯微鏡呈倒立放大像，視野中物體移動的方向與玻片實際移動方向相同（欲將左上方的物體移至中央，物體需向右下，故玻片應向「左上」移動）。'
+            },
+            {
+                question: '2. 欲觀察一隻活體小螞蟻的腳部細微立體構造，最適當的顯微鏡類型與光源選擇為何？',
+                options: ['複式顯微鏡，下光源', '解剖顯微鏡，上光源 (落射光)', '解剖顯微鏡，下光源 (透射光)', '複式顯微鏡，上光源'],
+                answer: 1,
+                explanation: '正確！解剖顯微鏡適合觀察實物立體結構，且螞蟻不透光，應使用上光源（落射光）照射表面反射。'
+            },
+            {
+                question: '3. 將複式顯微鏡的物鏡由 4X (低倍) 切換至 40X (高倍) 時，下列視野變化的敘述何者正確？',
+                options: ['視野範圍變大，亮度變亮', '細胞數目變多，視野變暗', '視野範圍變小，亮度變暗，細胞變大', '視野範圍變小，亮度變亮'],
+                answer: 2,
+                explanation: '正確！高倍鏡下放大倍率增加，看到的視野範圍變小、進光量減少（視野變暗），但個別細胞影像變大且更細緻。'
+            }
+        ];
+        let quizUserAnswers = {};
+
+        // Canvas & Context Initializations
+        const canvas = document.getElementById('microscopeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        window.onload = function() {
+            renderSpecimenButtons();
+            setupCanvasDrag();
+            setupKeyboardControls();
+            renderQuiz();
+            updateTutorialStep();
+            updateControls();
+            
+            requestAnimationFrame(animationLoop);
+        };
+
+        // Core Focus Clarity Calculation
+        function calculateClarity() {
+            let coarse = activeMode === 'compound' ? compoundState.coarseVal : stereoState.coarseVal;
+            let fine = activeMode === 'compound' ? compoundState.fineVal : stereoState.fineVal;
+            let dist = Math.hypot(coarse, fine);
+            return Math.max(0, 1 - dist / 35);
+        }
+
+        // Global Update Controls Function
+        function updateControls() {
+            if (activeMode === 'quiz') return;
+
+            if (activeMode === 'compound') {
+                const lightSlider = document.getElementById('lightSlider');
+                const coarseKnob = document.getElementById('coarseKnob');
+                const fineKnob = document.getElementById('fineKnob');
+                const stageX = document.getElementById('stageX');
+                const stageY = document.getElementById('stageY');
+
+                if (lightSlider) compoundState.lightBrightness = parseInt(lightSlider.value);
+                if (coarseKnob) compoundState.coarseVal = parseInt(coarseKnob.value);
+                if (fineKnob) compoundState.fineVal = parseInt(fineKnob.value);
+                if (stageX) compoundState.stageX = parseInt(stageX.value);
+                if (stageY) compoundState.stageY = parseInt(stageY.value);
+
+                const totalMag = compoundState.eyepiece * compoundState.objective;
+                const magBadge = document.getElementById('mag-badge');
+                if (magBadge) magBadge.innerText = `總放大倍率: ${totalMag}X`;
+                const lightVal = document.getElementById('light-val');
+                if (lightVal) lightVal.innerText = `${compoundState.lightBrightness}%`;
+            } else {
+                const stereoLightSlider = document.getElementById('stereoLightSlider');
+                const coarseKnob = document.getElementById('coarseKnob');
+                const fineKnob = document.getElementById('fineKnob');
+                const stageX = document.getElementById('stageX');
+                const stageY = document.getElementById('stageY');
+
+                if (stereoLightSlider) stereoState.brightness = parseInt(stereoLightSlider.value);
+                if (coarseKnob) stereoState.coarseVal = parseInt(coarseKnob.value);
+                if (fineKnob) stereoState.fineVal = parseInt(fineKnob.value);
+                if (stageX) stereoState.stageX = parseInt(stageX.value);
+                if (stageY) stereoState.stageY = parseInt(stageY.value);
+
+                const totalMagStr = stereoState.zoom === 1 ? '10X / 20X' : '30X / 40X';
+                const magBadge = document.getElementById('mag-badge');
+                if (magBadge) magBadge.innerText = `放大倍率: ${totalMagStr}`;
+                const lightVal = document.getElementById('light-val');
+                if (lightVal) lightVal.innerText = `${stereoState.brightness}%`;
+            }
+
+            const coarseValEl = document.getElementById('coarse-val');
+            const fineValEl = document.getElementById('fine-val');
+            const coarseVal = activeMode === 'compound' ? compoundState.coarseVal : stereoState.coarseVal;
+            const fineVal = activeMode === 'compound' ? compoundState.fineVal : stereoState.fineVal;
+            if (coarseValEl) coarseValEl.innerText = coarseVal;
+            if (fineValEl) fineValEl.innerText = fineVal;
+
+            const clarity = calculateClarity();
+            const focusText = document.getElementById('focus-clarity-text');
+            if (focusText) {
+                if (clarity > 0.85) {
+                    focusText.innerText = '非常清晰 (最佳焦點)';
+                    focusText.className = 'text-xs text-emerald-600 font-bold';
+                } else if (clarity > 0.5) {
+                    focusText.innerText = '大致輪廓 (微微模糊)';
+                    focusText.className = 'text-xs text-amber-600 font-normal';
+                } else {
+                    focusText.innerText = '非常模糊 (未對焦)';
+                    focusText.className = 'text-xs text-rose-500 font-normal';
+                }
+            }
+
+            checkTutorialProgress();
+        }
+
+        // Switch Operating Modes
+        function switchMode(mode) {
+            activeMode = mode;
+            currentStepIdx = 0;
+
+            const tabs = ['compound', 'stereo', 'quiz'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (!btn) return;
+                if (t === mode) {
+                    btn.className = 'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-white text-indigo-900 shadow';
+                } else {
+                    btn.className = 'px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-indigo-100 hover:text-white';
+                }
+            });
+
+            const simSection = document.getElementById('simulator-section');
+            const ctrlSection = document.getElementById('control-panel-section');
+            const quizSection = document.getElementById('quiz-section');
+
+            if (mode === 'quiz') {
+                if (simSection) simSection.classList.add('hidden');
+                if (ctrlSection) ctrlSection.classList.add('hidden');
+                if (quizSection) quizSection.classList.remove('hidden');
+            } else {
+                if (simSection) simSection.classList.remove('hidden');
+                if (ctrlSection) ctrlSection.classList.remove('hidden');
+                if (quizSection) quizSection.classList.add('hidden');
+
+                const modeBadge = document.getElementById('mode-badge');
+                const opticHint = document.getElementById('optic-hint');
+                const compoundLightCtrl = document.getElementById('compound-light-ctrl');
+                const stereoLightCtrl = document.getElementById('stereo-light-ctrl');
+                const lensComp = document.getElementById('lens-selector-compound');
+                const lensStereo = document.getElementById('lens-selector-stereo');
+
+                if (mode === 'compound') {
+                    if (modeBadge) modeBadge.innerText = '複式顯微鏡透光模式';
+                    if (opticHint) opticHint.innerText = '特性：倒立放大像 (上下左右相反)';
+                    if (compoundLightCtrl) compoundLightCtrl.classList.remove('hidden');
+                    if (stereoLightCtrl) stereoLightCtrl.classList.add('hidden');
+                    if (lensComp) lensComp.classList.remove('hidden');
+                    if (lensStereo) lensStereo.classList.add('hidden');
+                } else {
+                    if (modeBadge) modeBadge.innerText = '解剖顯微鏡立體模式';
+                    if (opticHint) opticHint.innerText = '特性：正立放大像 (同向立體像)';
+                    if (compoundLightCtrl) compoundLightCtrl.classList.add('hidden');
+                    if (stereoLightCtrl) stereoLightCtrl.classList.remove('hidden');
+                    if (lensComp) lensComp.classList.add('hidden');
+                    if (lensStereo) lensStereo.classList.remove('hidden');
+                }
+
+                const coarseKnob = document.getElementById('coarseKnob');
+                const fineKnob = document.getElementById('fineKnob');
+                const stageX = document.getElementById('stageX');
+                const stageY = document.getElementById('stageY');
+
+                if (coarseKnob) coarseKnob.value = mode === 'compound' ? compoundState.coarseVal : stereoState.coarseVal;
+                if (fineKnob) fineKnob.value = mode === 'compound' ? compoundState.fineVal : stereoState.fineVal;
+                if (stageX) stageX.value = mode === 'compound' ? compoundState.stageX : stereoState.stageX;
+                if (stageY) stageY.value = mode === 'compound' ? compoundState.stageY : stereoState.stageY;
+
+                renderSpecimenButtons();
+                updateTutorialStep();
+                updateControls();
+            }
+        }
+
+        // Control Toggle Handlers
+        function togglePower() {
+            powerOn = !powerOn;
+            const btn = document.getElementById('power-btn');
+            if (btn) {
+                if (powerOn) {
+                    btn.className = 'px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-sm';
+                    btn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> 已開啟';
+                } else {
+                    btn.className = 'px-3 py-1 bg-slate-400 text-white text-xs font-bold rounded-lg shadow-sm';
+                    btn.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> 已關閉';
+                }
+            }
+            updateControls();
+        }
+
+        function toggleStereoLight(source) {
+            stereoState.lightSource = source;
+            const topBtn = document.getElementById('top-light-btn');
+            const botBtn = document.getElementById('bottom-light-btn');
+            if (source === 'top') {
+                if (topBtn) topBtn.className = 'px-2 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg text-center';
+                if (botBtn) botBtn.className = 'px-2 py-1.5 bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center';
+            } else {
+                if (topBtn) topBtn.className = 'px-2 py-1.5 bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center';
+                if (botBtn) botBtn.className = 'px-2 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg text-center';
+            }
+            updateControls();
+        }
+
+        function setLens(mag) {
+            compoundState.objective = mag;
+            const buttons = document.querySelectorAll('#lens-selector-compound .lens-btn');
+            buttons.forEach(btn => {
+                if (btn.innerText.includes(`${mag}X`)) {
+                    btn.className = 'lens-btn border-2 border-indigo-600 bg-indigo-50 text-indigo-700 p-2 rounded-lg text-center flex flex-col items-center';
+                } else {
+                    btn.className = 'lens-btn border border-slate-200 bg-white text-slate-700 p-2 rounded-lg text-center flex flex-col items-center hover:bg-slate-50';
+                }
+            });
+            updateControls();
+        }
+
+        function setStereoZoom(zoom) {
+            stereoState.zoom = zoom;
+            const buttons = document.querySelectorAll('#lens-selector-stereo .stereo-lens-btn');
+            buttons.forEach((btn, idx) => {
+                if ((idx === 0 && zoom === 1) || (idx === 1 && zoom === 2)) {
+                    btn.className = 'stereo-lens-btn border-2 border-indigo-600 bg-indigo-50 text-indigo-700 p-2 rounded-lg text-center';
+                } else {
+                    btn.className = 'stereo-lens-btn border border-slate-200 bg-white text-slate-700 p-2 rounded-lg text-center hover:bg-slate-50';
+                }
+            });
+            updateControls();
+        }
+
+        function toggleGrid() {
+            isGridVisible = !isGridVisible;
+            const grid = document.getElementById('grid-overlay');
+            if (grid) {
+                if (isGridVisible) grid.classList.remove('hidden');
+                else grid.classList.add('hidden');
+            }
+        }
+
+        function resetControls() {
+            if (activeMode === 'compound') {
+                compoundState.coarseVal = 30;
+                compoundState.fineVal = -12;
+                compoundState.stageX = 0;
+                compoundState.stageY = 0;
+                compoundState.lightBrightness = 50;
+            } else {
+                stereoState.coarseVal = 0;
+                stereoState.fineVal = 0;
+                stereoState.stageX = 0;
+                stereoState.stageY = 0;
+                stereoState.brightness = 70;
+            }
+
+            const coarseKnob = document.getElementById('coarseKnob');
+            const fineKnob = document.getElementById('fineKnob');
+            const stageX = document.getElementById('stageX');
+            const stageY = document.getElementById('stageY');
+            const lightSlider = document.getElementById('lightSlider');
+            const stereoLightSlider = document.getElementById('stereoLightSlider');
+
+            if (coarseKnob) coarseKnob.value = activeMode === 'compound' ? compoundState.coarseVal : stereoState.coarseVal;
+            if (fineKnob) fineKnob.value = activeMode === 'compound' ? compoundState.fineVal : stereoState.fineVal;
+            if (stageX) stageX.value = 0;
+            if (stageY) stageY.value = 0;
+            if (lightSlider) lightSlider.value = compoundState.lightBrightness;
+            if (stereoLightSlider) stereoLightSlider.value = stereoState.brightness;
+
+            updateControls();
+        }
+
+        function renderSpecimenButtons() {
+            const container = document.getElementById('specimen-buttons');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const currentSpecimen = activeMode === 'compound' ? compoundState.specimen : stereoState.specimen;
+
+            Object.keys(specimens).forEach(key => {
+                const spec = specimens[key];
+                if (spec.type !== activeMode) return;
+
+                const isSelected = currentSpecimen === key;
+                const btn = document.createElement('button');
+                btn.onclick = () => selectSpecimen(key);
+                btn.className = `p-2 rounded-xl text-xs font-medium flex flex-col items-center justify-center border transition-all ${
+                    isSelected 
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-bold shadow-sm' 
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                }`;
+                btn.innerHTML = `
+                    <i class="fa-solid ${spec.icon} text-lg mb-1 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}"></i>
+                    <span>${spec.name}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectSpecimen(key) {
+            if (activeMode === 'compound') {
+                compoundState.specimen = key;
+            } else {
+                stereoState.specimen = key;
+            }
+            renderSpecimenButtons();
+            updateControls();
+        }
+
+        function setupCanvasDrag() {
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+
+            const startDrag = (clientX, clientY) => {
+                isDragging = true;
+                startX = clientX;
+                startY = clientY;
+            };
+
+            const doDrag = (clientX, clientY) => {
+                if (!isDragging) return;
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                startX = clientX;
+                startY = clientY;
+
+                if (activeMode === 'compound') {
+                    compoundState.stageX = Math.max(-150, Math.min(150, compoundState.stageX - dx * 0.5));
+                    compoundState.stageY = Math.max(-150, Math.min(150, compoundState.stageY - dy * 0.5));
+                    const sx = document.getElementById('stageX');
+                    const sy = document.getElementById('stageY');
+                    if (sx) sx.value = compoundState.stageX;
+                    if (sy) sy.value = compoundState.stageY;
+                } else {
+                    stereoState.stageX = Math.max(-150, Math.min(150, stereoState.stageX + dx * 0.5));
+                    stereoState.stageY = Math.max(-150, Math.min(150, stereoState.stageY + dy * 0.5));
+                    const sx = document.getElementById('stageX');
+                    const sy = document.getElementById('stageY');
+                    if (sx) sx.value = stereoState.stageX;
+                    if (sy) sy.value = stereoState.stageY;
+                }
+                updateControls();
+            };
+
+            const stopDrag = () => { isDragging = false; };
+
+            canvas.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+            window.addEventListener('mousemove', (e) => doDrag(e.clientX, e.clientY));
+            window.addEventListener('mouseup', stopDrag);
+
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) doDrag(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            window.addEventListener('touchend', stopDrag);
+        }
+
+        function setupKeyboardControls() {
+            window.addEventListener('keydown', (e) => {
+                if (activeMode === 'quiz') return;
+                const step = 8;
+                switch (e.key.toLowerCase()) {
+                    case 'w':
+                    case 'arrowup':
+                        moveStageDir(0, -step);
+                        break;
+                    case 's':
+                    case 'arrowdown':
+                        moveStageDir(0, step);
+                        break;
+                    case 'a':
+                    case 'arrowleft':
+                        moveStageDir(-step, 0);
+                        break;
+                    case 'd':
+                    case 'arrowright':
+                        moveStageDir(step, 0);
+                        break;
+                }
+            });
+        }
+
+        function moveStageDir(dx, dy) {
+            if (activeMode === 'compound') {
+                compoundState.stageX = Math.max(-150, Math.min(150, compoundState.stageX + dx));
+                compoundState.stageY = Math.max(-150, Math.min(150, compoundState.stageY + dy));
+                const sx = document.getElementById('stageX');
+                const sy = document.getElementById('stageY');
+                if (sx) sx.value = compoundState.stageX;
+                if (sy) sy.value = compoundState.stageY;
+            } else if (activeMode === 'stereo') {
+                stereoState.stageX = Math.max(-150, Math.min(150, stereoState.stageX + dx));
+                stereoState.stageY = Math.max(-150, Math.min(150, stereoState.stageY + dy));
+                const sx = document.getElementById('stageX');
+                const sy = document.getElementById('stageY');
+                if (sx) sx.value = stereoState.stageX;
+                if (sy) sy.value = stereoState.stageY;
+            }
+            updateControls();
+        }
+
+        function resetStagePos() {
+            if (activeMode === 'compound') {
+                compoundState.stageX = 0;
+                compoundState.stageY = 0;
+            } else {
+                stereoState.stageX = 0;
+                stereoState.stageY = 0;
+            }
+            const sx = document.getElementById('stageX');
+            const sy = document.getElementById('stageY');
+            if (sx) sx.value = 0;
+            if (sy) sy.value = 0;
+            updateControls();
+        }
+
+        function toggleOrganismSpeed() {
+            if (organismSpeedMultiplier === 1) {
+                organismSpeedMultiplier = 2.2;
+                document.getElementById('speed-label').innerText = '快速';
+            } else {
+                organismSpeedMultiplier = 1;
+                document.getElementById('speed-label').innerText = '正常';
+            }
+        }
+
+        let lastTimestamp = 0;
+
+        function animationLoop(timestamp) {
+            const dt = (timestamp - lastTimestamp) / 1000 || 0.016;
+            lastTimestamp = timestamp;
+
+            updateOrganisms(dt);
+
+            if (isChallengeActive) {
+                checkChallengeCondition(dt);
+            }
+
+            renderCanvas();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function updateOrganisms(dt) {
+            parameciumPos.angle += (Math.random() - 0.5) * 0.15;
+            const pSpeed = parameciumPos.speed * organismSpeedMultiplier * 30 * dt;
+            parameciumPos.x += Math.cos(parameciumPos.angle) * pSpeed;
+            parameciumPos.y += Math.sin(parameciumPos.angle) * pSpeed;
+
+            if (Math.hypot(parameciumPos.x, parameciumPos.y) > 120) {
+                parameciumPos.angle = Math.atan2(-parameciumPos.y, -parameciumPos.x) + (Math.random() - 0.5);
+            }
+
+            antPos.angle += (Math.random() - 0.5) * 0.25;
+            const aSpeed = antPos.speed * organismSpeedMultiplier * 35 * dt;
+            antPos.x += Math.cos(antPos.angle) * aSpeed;
+            antPos.y += Math.sin(antPos.angle) * aSpeed;
+
+            if (Math.hypot(antPos.x, antPos.y) > 120) {
+                antPos.angle = Math.atan2(-antPos.y, -antPos.x) + (Math.random() - 0.5);
+            }
+        }
+
+        function toggleChallenge() {
+            const btn = document.getElementById('challenge-toggle-btn');
+            if (isChallengeActive) {
+                stopChallenge(false);
+            } else {
+                isChallengeActive = true;
+                challengeTimer = 0;
+                btn.innerText = '停止挑戰';
+                btn.className = 'px-3 py-1.5 bg-rose-500 text-white font-bold text-xs rounded-lg shadow hover:bg-rose-600 transition';
+                
+                if (activeMode === 'compound' && compoundState.specimen !== 'paramecium') {
+                    selectSpecimen('paramecium');
+                } else if (activeMode === 'stereo' && stereoState.specimen !== 'ant') {
+                    selectSpecimen('ant');
+                }
+            }
+        }
+
+        function stopChallenge(isWin) {
+            isChallengeActive = false;
+            const btn = document.getElementById('challenge-toggle-btn');
+            btn.innerText = '開始挑戰';
+            btn.className = 'px-3 py-1.5 bg-white text-indigo-900 font-bold text-xs rounded-lg shadow hover:bg-yellow-300 transition';
+
+            if (isWin) {
+                const modeName = activeMode === 'compound' ? '複式顯微鏡（追蹤時玻片需反向移動）' : '解剖顯微鏡（追蹤時玻片同向移動）';
+                alert(`🎉 太棒了！挑戰成功！\n你已完全掌握 ${modeName} 的玻片追蹤技巧！`);
+            }
+        }
+
+        function checkChallengeCondition(dt) {
+            let organX = 0, organY = 0;
+
+            if (activeMode === 'compound') {
+                if (compoundState.specimen !== 'paramecium') return;
+                const zoomScale = (compoundState.objective / 4);
+                organX = (parameciumPos.x + compoundState.stageX) * (-zoomScale);
+                organY = (parameciumPos.y + compoundState.stageY) * (-zoomScale);
+            } else {
+                if (stereoState.specimen !== 'ant') return;
+                const zoomScale = stereoState.zoom === 1 ? 1.2 : 2.5;
+                organX = (antPos.x + stereoState.stageX) * zoomScale;
+                organY = (antPos.y + stereoState.stageY) * zoomScale;
+            }
+
+            const distToCenter = Math.hypot(organX, organY);
+            const clarity = calculateClarity();
+
+            if (distToCenter < 35 && clarity > 0.6) {
+                challengeTimer += dt;
+                document.getElementById('challenge-timer').innerText = `${challengeTimer.toFixed(1)}s / 10s`;
+                if (challengeTimer >= 10.0) {
+                    stopChallenge(true);
+                }
+            } else {
+                challengeTimer = Math.max(0, challengeTimer - dt * 0.5);
+                document.getElementById('challenge-timer').innerText = `${challengeTimer.toFixed(1)}s / 10s`;
+            }
+        }
+
+        function renderCanvas() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            if (activeMode === 'compound') {
+                if (!powerOn || compoundState.lightBrightness === 0) {
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '14px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('光源已關閉，請開啟電源與調整光圈', centerX, centerY);
+                    ctx.restore();
+                    return;
+                }
+
+                const lightIntensity = compoundState.lightBrightness / 100;
+                const bgGrad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, 200);
+                bgGrad.addColorStop(0, `rgba(254, 252, 232, ${lightIntensity})`);
+                bgGrad.addColorStop(0.8, `rgba(250, 204, 21, ${lightIntensity * 0.7})`);
+                bgGrad.addColorStop(1, `rgba(161, 98, 7, ${lightIntensity * 0.4})`);
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const clarity = calculateClarity();
+                const blurAmount = (1 - clarity) * 12;
+                ctx.filter = `blur(${blurAmount}px)`;
+
+                ctx.translate(centerX, centerY);
+                const zoomScale = compoundState.objective / 4;
+                ctx.scale(-zoomScale, -zoomScale);
+                ctx.translate(compoundState.stageX, compoundState.stageY);
+
+                const specKey = compoundState.specimen;
+                if (specimens[specKey] && specimens[specKey].draw) {
+                    specimens[specKey].draw(ctx, clarity);
+                }
+
+            } else {
+                const lightIntensity = stereoState.brightness / 100;
+                ctx.fillStyle = stereoState.lightSource === 'top' ? '#f8fafc' : '#fef08a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const clarity = calculateClarity();
+                const blurAmount = (1 - clarity) * 12;
+                ctx.filter = `blur(${blurAmount}px)`;
+
+                ctx.translate(centerX, centerY);
+                const zoomScale = stereoState.zoom === 1 ? 1.2 : 2.5;
+                ctx.scale(zoomScale, zoomScale);
+                ctx.translate(stereoState.stageX, stereoState.stageY);
+
+                const specKey = stereoState.specimen;
+                if (specimens[specKey] && specimens[specKey].draw) {
+                    specimens[specKey].draw(ctx, clarity, stereoState.lightSource);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        // Specimen Graphics Functions
+        function drawParamecium(ctx, focus) {
+            ctx.save();
+            ctx.translate(parameciumPos.x, parameciumPos.y);
+            ctx.rotate(parameciumPos.angle);
+
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 45, 18, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#93c5fd';
+            ctx.fill();
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 1;
+            const timeOffset = Date.now() * 0.01;
+            for (let a = 0; a < Math.PI * 2; a += 0.25) {
+                const cx = Math.cos(a) * 45;
+                const cy = Math.sin(a) * 18;
+                const wave = Math.sin(timeOffset + a * 3) * 3;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(a) * (5 + wave), cy + Math.sin(a) * (5 + wave));
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#1d4ed8';
+            ctx.beginPath();
+            ctx.ellipse(-8, -2, 9, 5, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(12, 3, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawAnt(ctx, focus, lightSource) {
+            ctx.save();
+            ctx.translate(antPos.x, antPos.y);
+            ctx.rotate(antPos.angle);
+
+            ctx.fillStyle = lightSource === 'top' ? '#27272a' : '#52525b';
+            
+            if (lightSource === 'top') {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 4;
+            }
+
+            ctx.beginPath();
+            ctx.arc(30, 0, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(10, 0, 14, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(-20, 0, 22, 14, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            const legWiggle = Math.sin(Date.now() * 0.02) * 4;
+            ctx.strokeStyle = '#27272a';
+            ctx.lineWidth = 2.5;
+
+            for (let i = -1; i <= 1; i++) {
+                const xOffset = 10 + i * 8;
+                ctx.beginPath();
+                ctx.moveTo(xOffset, 0);
+                ctx.lineTo(xOffset - 2, -20 + (i % 2 === 0 ? legWiggle : -legWiggle));
+                ctx.lineTo(xOffset - 10, -30);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(xOffset, 0);
+                ctx.lineTo(xOffset - 2, 20 + (i % 2 === 0 ? -legWiggle : legWiggle));
+                ctx.lineTo(xOffset - 10, 30);
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(38, -4);
+            ctx.lineTo(50, -18);
+            ctx.moveTo(38, 4);
+            ctx.lineTo(50, 18);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawOnionCells(ctx, focus) {
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 1.5;
+            ctx.fillStyle = '#f3e8ff';
+
+            for (let i = -4; i <= 4; i++) {
+                for (let j = -4; j <= 4; j++) {
+                    const x = i * 50;
+                    const y = j * 30;
+                    ctx.beginPath();
+                    ctx.rect(x, y, 48, 28);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#7e22ce';
+                    ctx.beginPath();
+                    ctx.arc(x + 35, y + 14, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#f3e8ff';
+                }
+            }
+        }
+
+        function drawLetterE(ctx, focus) {
+            ctx.font = 'bold 70px Times New Roman, serif';
+            ctx.fillStyle = '#1e293b';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('e', 0, 0);
+        }
+
+        function drawFlower(ctx, focus, lightSource) {
+            ctx.fillStyle = lightSource === 'top' ? '#f43f5e' : '#fb7185';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 60, 45, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 3;
+            for (let i = -3; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(i * 10, -20, i * 15, -40);
+                ctx.stroke();
+
+                ctx.fillStyle = '#eab308';
+                ctx.beginPath();
+                ctx.arc(i * 15, -40, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawCoin(ctx, focus, lightSource) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.beginPath();
+            ctx.arc(0, 0, 65, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.fillStyle = lightSource === 'top' ? '#cbd5e1' : '#475569';
+            ctx.font = 'bold 36px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('10', 0, -5);
+
+            ctx.font = '12px sans-serif';
+            ctx.fillText('中華民國', 0, 30);
+        }
+
+        function updateTutorialStep() {
+            const steps = tutorialSteps[activeMode];
+            if (!steps || currentStepIdx >= steps.length) return;
+
+            const step = steps[currentStepIdx];
+            const numEl = document.getElementById('step-number');
+            const titleEl = document.getElementById('step-title');
+            const descEl = document.getElementById('step-desc');
+
+            if (numEl) numEl.innerText = currentStepIdx + 1;
+            if (titleEl) titleEl.innerText = step.title;
+            if (descEl) descEl.innerText = step.desc;
+        }
+
+        function nextStep() {
+            const steps = tutorialSteps[activeMode];
+            if (currentStepIdx < steps.length - 1) {
+                currentStepIdx++;
+                updateTutorialStep();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIdx > 0) {
+                currentStepIdx--;
+                updateTutorialStep();
+            }
+        }
+
+        function checkTutorialProgress() {
+            const steps = tutorialSteps[activeMode];
+            if (!steps || !steps[currentStepIdx]) return;
+
+            if (steps[currentStepIdx].check()) {
+                if (currentStepIdx < steps.length - 1) {
+                    currentStepIdx++;
+                    updateTutorialStep();
+                }
+            }
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            quizData.forEach((q, qIdx) => {
+                const card = document.createElement('div');
+                card.className = 'p-4 rounded-xl bg-slate-50 border border-slate-200';
+
+                let optionsHTML = '';
+                q.options.forEach((opt, optIdx) => {
+                    const isSelected = quizUserAnswers[qIdx] === optIdx;
+                    optionsHTML += `
+                        <button onclick="selectAnswer(${qIdx}, ${optIdx})" class="w-full text-left p-3 rounded-lg border text-sm transition-all mb-2 flex items-center justify-between ${
+                            isSelected 
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-semibold' 
+                            : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
+                        }">
+                            <span>${String.fromCharCode(65 + optIdx)}. ${opt}</span>
+                            ${isSelected ? '<i class="fa-solid fa-circle-check text-indigo-600"></i>' : ''}
+                        </button>
+                    `;
+                });
+
+                let explanationHTML = '';
+                if (quizUserAnswers[qIdx] !== undefined) {
+                    const isCorrect = quizUserAnswers[qIdx] === q.answer;
+                    explanationHTML = `
+                        <div class="mt-3 p-3 rounded-lg text-xs ${isCorrect ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}">
+                            <p class="font-bold mb-1">${isCorrect ? '✓ 回答正確！' : '✗ 回答錯誤'}</p>
+                            <p>${q.explanation}</p>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <h3 class="font-bold text-slate-800 text-sm mb-3">${q.question}</h3>
+                    <div class="space-y-1">${optionsHTML}</div>
+                    ${explanationHTML}
+                `;
+                container.appendChild(card);
+            });
+
+            let score = 0;
+            Object.keys(quizUserAnswers).forEach(qIdx => {
+                if (quizUserAnswers[qIdx] === quizData[qIdx].answer) score++;
+            });
+            const scoreBadge = document.getElementById('quiz-score');
+            if (scoreBadge) scoreBadge.innerText = `得分: ${score} / ${quizData.length}`;
+        }
+
+        function selectAnswer(qIdx, optIdx) {
+            quizUserAnswers[qIdx] = optIdx;
+            renderQuiz();
+        }
+    </script>
+</body>
+</html>
